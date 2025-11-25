@@ -1,35 +1,49 @@
 name: Build & Deploy to ACI
+
 on:
   push:
     branches:
       - main
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-- name: Login to Docker Hub
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-- name: Build & Push Docker Image
+
+      - name: Build & Push Docker image
         uses: docker/build-push-action@v4
         with:
+          context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/project1:latest
-- name: Login to Azure
+
+      - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-- name: Deploy to Azure Container Instances
+
+      - name: Delete existing ACI (if any)
         run: |
           az container delete \
             --resource-group project1-rg \
             --name project1-instance \
             --yes || echo "No existing container found"
-az container create \
+
+      - name: Create ACI
+        run: |
+          az container create \
             --resource-group project1-rg \
             --name project1-instance \
             --image ${{ secrets.DOCKERHUB_USERNAME }}/project1:latest \
@@ -41,7 +55,8 @@ az container create \
             --registry-login-server index.docker.io \
             --registry-username ${{ secrets.DOCKERHUB_USERNAME }} \
             --registry-password ${{ secrets.DOCKERHUB_PASSWORD }}
-- name: Show deployed container FQDN
+
+      - name: Show deployed container FQDN
         run: |
           az container show \
             --resource-group project1-rg \
