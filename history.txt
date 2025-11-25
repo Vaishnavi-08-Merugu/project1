@@ -1,0 +1,5 @@
+history
+cd project1
+history
+doskey /history
+doskey /history > C:\Users\MERUGU\project1\history.txt
